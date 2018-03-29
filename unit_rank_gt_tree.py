@@ -39,7 +39,7 @@ for i in range(1,4):
 with tf.Session() as sess:    
     saver = tf.train.Saver()
     #saver.restore(sess,'ckpts5/39900.ckpt')
-    saver.restore(sess,'ckpts_freeze2/9900.ckpt')
+    saver.restore(sess,'ckpts_freeze3/9900.ckpt')
     fd = {modifys['conv%d'%i]:modifyv['conv%d'%i] for i in range(1,4)}
     fdpos = {inputs:pos}
     fdpos.update(fd)

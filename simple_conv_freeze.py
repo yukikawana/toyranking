@@ -54,9 +54,14 @@ for tv in tf.trainable_variables():
                           [0,1,0],
                           [0,1,0]]
 
+            """
             w[:,:,2,0] = [[0,0,0],
                           [0,-7,0],
                           [0,0,0]]
+            """
+            w[:,:,2,0] = [[0,-7,0],
+                          [0,-7,0],
+                          [0,-7,0]]
 
             w[:,:,0,1] = [[0,-1,0],
                           [0,-1,0],
@@ -66,9 +71,9 @@ for tv in tf.trainable_variables():
                           [0,-1,0],
                           [0,-1,0]]
 
-            w[:,:,2,1] = [[0,0,0],
+            w[:,:,2,1] = [[0,7,0],
                           [0,7,0],
-                          [0,0,0]]
+                          [0,7,0]]
 
         elif tv.name.find('conv3')>-1:
             w[:,:,0,0] = [[0,1,0],
@@ -77,7 +82,7 @@ for tv in tf.trainable_variables():
 
             w[:,:,1,0] = [[0,0,0],
                           [0,-7,0],
-                          [0,0,0]]
+                          [0,-7,0]]
 
             w[:,:,0,1] = [[0,-1,0],
                           [0,-1,0],
@@ -85,7 +90,7 @@ for tv in tf.trainable_variables():
 
             w[:,:,1,1] = [[0,0,0],
                           [0,7,0],
-                          [0,0,0]]
+                          [0,7,0]]
 
         elif tv.name.find('conv4')>-1:
             w[:,:,0,0] = [[0,0,0],
@@ -124,11 +129,10 @@ for tv in trainvs:
 for i in xrange(10000):
     x, y= create_batch(batch_size)
     #normalize and centralize the batch
-    x-=128
 
     if i%100 == 0:
         train_accuracy = loss.eval(feed_dict={inputs:x, labels:y})
         loval = logits.eval(feed_dict={inputs:x, labels:y})
         print("step %d, training accuracy %g"%(i, train_accuracy))
-        saver.save(sess, 'ckpts_freeze_ng/%d.ckpt'%(i))
+        saver.save(sess, 'ckpts_freeze3/%d.ckpt'%(i))
     train_step.run(feed_dict={inputs:x, labels:y})

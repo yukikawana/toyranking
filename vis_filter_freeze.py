@@ -43,14 +43,12 @@ with eval_graph.as_default():
 
 with tf.Session(graph=eval_graph) as sess:    
     saver = tf.train.Saver()
-    saver.restore(sess,'ckpts_freeze_ng/9900.ckpt')
+    saver.restore(sess,'ckpts_freeze3/9900.ckpt')
     for tv in tf.trainable_variables():
         print tv.name, sess.run(tv)
     neg = create_neg(input_shape)[None,:,:,:]
-    neg-=128
     actneg = sess.run([activations], feed_dict={inputs: neg})[0]
     pos= create_pos(input_shape)[None,:,:,:]
-    pos-=128
     actpos = sess.run([activations], feed_dict={inputs: pos})[0]
     posref = sess.run([logits], feed_dict={inputs: pos})[0][0,0,0,:]
     negref = sess.run([logits], feed_dict={inputs: neg})[0][0,0,0,:]
@@ -81,7 +79,6 @@ with tf.Session(graph=eval_graph) as sess:
                 continue
             if maxy-miny == 0 or maxx - minx == 0:
                 continue
-            img+=128
             cropped = np.uint8(img[0,miny:maxy+1,minx:maxx+1, 0])
             gcropped = grad[0,miny:maxy+1,minx:maxx+1, 0]
             print 'imgsize = ',maxy-miny+1, maxx-minx+1,cropped.shape
@@ -91,5 +88,5 @@ with tf.Session(graph=eval_graph) as sess:
             gcropped = cv2.resize(gcropped,(input_shape[0]*10, input_shape[1]*10), interpolation=cv2.INTER_NEAREST)
             gcropped = cv2.applyColorMap(gcropped, cv2.COLORMAP_JET)
 
-            skimage.io.imsave('vis_freeze_ng/%s_%d.png'%(name,channel),cropped)
-            skimage.io.imsave('vis_freeze_ng/%s_%d_g.png'%(name,channel),gcropped)
+            skimage.io.imsave('vis_freeze3/%s_%d.png'%(name,channel),cropped)
+            skimage.io.imsave('vis_freeze3/%s_%d_g.png'%(name,channel),gcropped)
