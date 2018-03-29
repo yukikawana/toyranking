@@ -9,11 +9,9 @@ import cv2
 import matplotlib.pyplot as plt
 import sys, os
 from collections import OrderedDict
-from itertools import product
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 from sample_maker import create_pos, create_neg
-#from sc import sc
-from sc_freeze import sc
+from sc import sc
 
 
 input_shape = (8,8)
@@ -25,11 +23,8 @@ neg = create_neg(input_shape)[None,:,:,:]
 pos= create_pos(input_shape)[None,:,:,:]
 
 inputs = tf.placeholder(tf.float32, shape=(batch_size, input_shape[0], input_shape[1], 1)) 
-modify=[]
-for i in range(1,4):
-    modify.append('conv%d'%i)
 
-logits, net, activations, modifys = sc(inputs, modify=modify)
+logits, net, activations = sc(inputs)
 print modifys
 modifyv = {}
 for i in range(1,4):
@@ -38,46 +33,43 @@ for i in range(1,4):
     modifyv[name] = np.ones(activations[name].shape)
 with tf.Session() as sess:    
     saver = tf.train.Saver()
-    #saver.restore(sess,'ckpts5/39900.ckpt')
-    saver.restore(sess,'ckpts_freeze2/9900.ckpt')
+    saver.restore(sess,'ckpts5/39900.ckpt')
     fd = {modifys['conv%d'%i]:modifyv['conv%d'%i] for i in range(1,4)}
     fdpos = {inputs:pos}
     fdpos.update(fd)
     fdneg = {inputs:neg}
     fdneg.update(fd)
-    posref = sess.run([activations], feed_dict=fdpos)[0]
-    negref = sess.run([activations], feed_dict=fdneg)[0]
+    posref = sess.run([net], feed_dict=fdpos)[0][0,0,0,0]
+    negref = sess.run([net], feed_dict=fdneg)[0][0,0,0,1]
     #posref = sess.run([logits], feed_dict=fdpos)[0][0,0,0,0]
     #negref = sess.run([logits], feed_dict=fdneg)[0][0,0,0,1]
-    negchs = OrderedDict()
-    poschs = OrderedDict()
-    posneg = OrderedDict()
-    for i in reversed(range(2,5)):
-        top='conv%d'%i
-        bottom='conv%d'%(i-1)
-        _, theight, twidth, tchannels = activations[top].shape
-        _, bheight, bwidth, bchannels = activations[bottom].shape
-        zeroact = np.zeros([batch_size,bheight,bwidth])
-        for tchannel, bchannel in product(range(tchannels), range(bchannels)):
-            modifyvcopy = modifyv[bottom].copy()
-            modifyvcopy[:,:,:,bchannel] = zeroact
+    print posref, negref
+    negchs = {}
+    poschs = {}
+    posneg = {}
+    for i in range(1,4):
+        name='conv%d'%i
+        _, height, width, channels = activations[name].shape
+        zeroact = np.zeros([batch_size,height,width])
+        for channel in range(channels):
+            modifyvcopy = modifyv[name].copy()
+            modifyvcopy[:,:,:,channel] = zeroact
             fd = {modifys['conv%d'%i]:modifyv['conv%d'%i] for i in range(1,4)}
-            fd[modifys[bottom]] = modifyvcopy
+            fd[modifys[name]] = modifyvcopy
             fdpos = {inputs:pos}
             fdpos.update(fd)
             fdneg = {inputs:neg}
             fdneg.update(fd)
-            posch = sess.run([activations[top]], feed_dict=fdpos)[0][0,:,:,tchannel].max()
-            negch = sess.run([activations[top]], feed_dict=fdneg)[0][0,:,:,tchannel].max()
+            posch = sess.run([net], feed_dict=fdpos)[0][0,0,0,0]
+            negch = sess.run([net], feed_dict=fdneg)[0][0,0,0,1]
             #posch = sess.run([logits], feed_dict=fdpos)[0][0,0,0,0]
             #negch = sess.run([logits], feed_dict=fdneg)[0][0,0,0,1]
-            posg = (posch - posref[top][0,:,:,tchannel].max())
-            negg = (negch - negref[top][0,:,:,tchannel].max())
-            poschs[(top, tchannel, bottom, bchannel)]=posg
-            negchs[(top, tchannel, bottom, bchannel)]=negg
-            posneg[(top, tchannel, bottom, bchannel)]=posg - negg
-            print top, tchannel,bottom, bchannel, posg, negg, posg + negg
-    """
+            posg = (posref-posch)
+            negg = (negref-negch)
+            poschs[(name, channel)]=posg
+            negchs[(name, channel)]=negg
+            posneg[(name, channel)]=posg - negg
+            print name, channel, posch, negch
     for k, v in sorted(poschs.items(), key=lambda x:x[1])[::-1]:
         print 'pos',k,v
     print '################'
@@ -86,6 +78,5 @@ with tf.Session() as sess:
     print '################'
     for k, v in sorted(posneg.items(), key=lambda x:x[1])[::-1]:
         print 'pnn',k,v
-    """
 
 
